@@ -1,0 +1,92 @@
+<!DOCTYPE HTML>
+<html>
+  <head>
+    <title>Bus query tool</title>
+
+  <!-- css libraries -->
+  <link rel="stylesheet" href="/components/bootstrap/dist/css/bootstrap.min.css">
+  <link rel="stylesheet" href="/components/leaflet/dist/leaflet.css">
+  
+  <!-- js toolset -->
+  <script src="/components/leaflet/dist/leaflet.js"></script>
+  <script src="/components/jquery/dist/jquery.min.js"></script>
+
+  <script src="/shapefiler.js"></script>
+  
+  </head>
+
+  <style>
+    .map {
+      width: 100%;
+      height: 400px;
+    }
+    .btn, .input-group-addon, .form-control {
+      border-radius: 0px;
+    }
+    .tt-dataset.tt-dataset-routes {
+      background-color: #FFF;
+      padding: 5px;
+      border: 1px solid #ccc;
+    }
+    .twitter-typeahead {
+      display: table-cell !important;
+    }
+  </style>
+  
+  <body>
+    <div class="container">
+      
+      <h2>
+        Test map
+      </h2>
+
+      <div class="row">
+        <div class="col-xs-12">
+          <div class="map" id="map">
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </body>
+
+  <script type="text/javascript">
+
+    var map = new L.map('map', {
+      center: new L.LatLng(40.75, -73.92),
+      zoom: 12,
+      layers: []
+    });
+
+    // L.tileLayer('http://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}.png').addTo(map);
+
+    $.get('example.json')
+    .done(function (data) {
+
+      // on success prepare data for shapefiler
+      var path = data.routeData.path;
+      path = path.map(function (each) {
+        each.lat = each.shape_pt_lat;
+        each.lng = each.shape_pt_lon;
+        delete each.shape_pt_lat;
+        delete each.shape_pt_lon;
+        return each;
+      });
+
+      // console.log('Working with this data: ' + path);
+
+      var sf = new shapefiler(path);
+
+      console.log(sf.reorder());
+
+    })
+    .error(function (error) {
+      console.log(error);
+    })
+
+  </script>
+</html>
+
+
+
+
