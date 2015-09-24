@@ -18,7 +18,7 @@
   <style>
     .map {
       width: 100%;
-      height: 400px;
+      height: 1000px;
     }
     .btn, .input-group-addon, .form-control {
       border-radius: 0px;
@@ -73,13 +73,29 @@
         return each;
       });
 
-      // console.log('Working with this data: ' + path);
+      var parts = sfToolkit.splitDirections(path, 'direction_id');
 
-      var sf = new shapefiler(path);
+      var sf = new sfToolkit.shapefiler(parts[0]);
+      var clean = sf.getCleaned();
+      console.log('Completed; example: ', clean[45]);
 
-      console.log(sf.reorder());
+      var ptArray = [];
+      for (var i = 0; i < clean.length; i++) {
+        var pt = clean[i], 
+            latlng = new L.latLng(pt.lat, pt.lng);
+        ptArray.push(latlng);
+      };
 
+      var polyline = new L.Polyline(ptArray, {
+        color: 'red',
+        weight: 2,
+        opacity: 0.75,
+        smoothFactor: 1
+      });
+      polyline.addTo(map);
+      map.fitBounds(polyline.getBounds());
     })
+
     .error(function (error) {
       console.log(error);
     })
