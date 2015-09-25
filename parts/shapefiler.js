@@ -25,6 +25,7 @@ var sfToolkit = {
     this.base = pointCluster;
     this.cleaned = null;
     this.ref = {
+      angleSensitivity: 0.2,
       avg: {
         lat: null,
         lng: null,
@@ -102,6 +103,7 @@ var sfToolkit = {
       this.ref.far.lat = tempFarthest.lat;
       this.ref.far.lng = tempFarthest.lng;
       this.ref.far.obj = tempFarthest;
+      console.log(tempFarthest);
 
       return this;
     };
@@ -150,7 +152,8 @@ var sfToolkit = {
           pruned = this.ref.pruned;
 
       // function(s) used from class utils
-      var calcDist = this.calcDist;
+      var calcDist = this.calcDist,
+          calcAngle = this.calcAngle;
 
       order.push(far.obj);
 
@@ -162,15 +165,22 @@ var sfToolkit = {
             };
 
         for (var i = 0; i < tempOrder.length; i++) {
-          var pt = tempOrder[i],
-              dist = calcDist(each.lat, each.lng, pt.lat, pt.lng);
-          if (placeAfter.index == null || dist < placeAfter.dist) {
+          var ptB = tempOrder[i],
+              ptC = order[order.length - 1],
+
+              distAB = calcDist(each.lat, each.lng, ptB.lat, ptB.lng),
+              distCA = calcDist(each.lat, each.lng, ptC.lat, ptC.lng),
+              distBC = calcDist(ptB.lat, ptB.lng, ptC.lat, ptC.lng);
+
+              angle = calcAngle(distCA, distCA, distBC);
+
+          if (placeAfter.index == null || distAB < placeAfter.dist) {
             placeAfter.index = i;
             placeAfter.dist = dist;
           }
         }
 
-        var end = tempOrder.splice(placeAfter.index);
+        var end = tempOrder.splice(placeAfter.index + 1);
         order = tempOrder.concat(each).concat(end);
       });
 
@@ -189,6 +199,12 @@ var sfToolkit = {
       var y = (phi2-phi1);
       var d = Math.sqrt(x*x + y*y);
       return R * d;
+    };
+
+    this.calcAngle = function (A,B,C) {
+      var angleABC = Math.acos(((B * B) + (C * C) - (A * A)) / (2 * B * C)),
+          angleACB = Math.acos(((A * A) + (C * C) - (B * B)) / (2 * A * C));
+      return 180 - angleABC - angleACB;
     };
 
     this.calcAvg = function (elem) {

@@ -86,6 +86,18 @@
         ptArray.push(latlng);
       };
 
+      L.circle(ptArray[200], 5).addTo(map);
+      L.circle(ptArray[201], 4).addTo(map);
+      L.circle(ptArray[202], 3).addTo(map);
+      L.circle(ptArray[203], 2).addTo(map);
+      L.circle(ptArray[204], 1).addTo(map);
+
+      L.circle(ptArray[150], 5).addTo(map);
+      L.circle(ptArray[151], 4).addTo(map);
+      L.circle(ptArray[152], 3).addTo(map);
+      L.circle(ptArray[153], 2).addTo(map);
+      L.circle(ptArray[154], 1).addTo(map);
+
       var polyline = new L.Polyline(ptArray, {
         color: 'red',
         weight: 2,
