@@ -53,12 +53,12 @@
   <script type="text/javascript">
 
     var map = new L.map('map', {
-      center: new L.LatLng(40.75, -73.92),
-      zoom: 12,
+      center: new L.LatLng(40.8, -73.95),
+      zoom: 14,
       layers: []
     });
 
-    // L.tileLayer('http://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}.png').addTo(map);
+    L.tileLayer('http://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}.png').addTo(map);
 
     $.get('example.json')
     .done(function (data) {
@@ -77,7 +77,7 @@
 
       var sf = new sfToolkit.shapefiler(parts[0]);
       var clean = sf.getCleaned();
-      console.log('Completed; example: ', clean[45]);
+      console.log('Completed; example: ', clean.length, clean);
 
       var ptArray = [];
       for (var i = 0; i < clean.length; i++) {
@@ -86,17 +86,6 @@
         ptArray.push(latlng);
       };
 
-      L.circle(ptArray[200], 5).addTo(map);
-      L.circle(ptArray[201], 4).addTo(map);
-      L.circle(ptArray[202], 3).addTo(map);
-      L.circle(ptArray[203], 2).addTo(map);
-      L.circle(ptArray[204], 1).addTo(map);
-
-      L.circle(ptArray[150], 5).addTo(map);
-      L.circle(ptArray[151], 4).addTo(map);
-      L.circle(ptArray[152], 3).addTo(map);
-      L.circle(ptArray[153], 2).addTo(map);
-      L.circle(ptArray[154], 1).addTo(map);
 
       var polyline = new L.Polyline(ptArray, {
         color: 'red',
@@ -105,7 +94,7 @@
         smoothFactor: 1
       });
       polyline.addTo(map);
-      map.fitBounds(polyline.getBounds());
+      // map.fitBounds(polyline.getBounds());
     })
 
     .error(function (error) {

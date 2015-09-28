@@ -25,7 +25,7 @@ var sfToolkit = {
     this.base = pointCluster;
     this.cleaned = null;
     this.ref = {
-      angleSensitivity: 0.2,
+      angleSensitivity: 0.175,
       avg: {
         lat: null,
         lng: null,
@@ -103,7 +103,6 @@ var sfToolkit = {
       this.ref.far.lat = tempFarthest.lat;
       this.ref.far.lng = tempFarthest.lng;
       this.ref.far.obj = tempFarthest;
-      console.log(tempFarthest);
 
       return this;
     };
@@ -149,6 +148,10 @@ var sfToolkit = {
 
       var order = [],
           far = this.ref.far,
+          sensitivity = {
+            low: 180 - this.ref.angleSensitivity * 180,
+            high: 180 + this.ref.angleSensitivity * 180
+          },
           pruned = this.ref.pruned;
 
       // function(s) used from class utils
@@ -157,31 +160,141 @@ var sfToolkit = {
 
       order.push(far.obj);
 
-      pruned.forEach(function (each) {
+      pruned.forEach(function (each, eachIndex) {
         var tempOrder = order,
             placeAfter = {
               index: null,
               dist: null
             };
+        
 
         for (var i = 0; i < tempOrder.length; i++) {
-          var ptB = tempOrder[i],
-              ptC = order[order.length - 1],
+          var dist = calcDist(each.lat, each.lng, tempOrder[i].lat, tempOrder[i].lng);
 
-              distAB = calcDist(each.lat, each.lng, ptB.lat, ptB.lng),
-              distCA = calcDist(each.lat, each.lng, ptC.lat, ptC.lng),
-              distBC = calcDist(ptB.lat, ptB.lng, ptC.lat, ptC.lng);
+          if ((placeAfter.dist == null || dist < placeAfter.dist) && dist > 5) {
+            if (tempOrder.length == 0) {
+              placeAfter.index = i;
+              placeAfter.dist = dist;
+            } else {
+              if (i == (tempOrder.length - 1) && tempOrder.length > 1) {
+                var ptA = tempOrder[i - 1],
+                    ptB = tempOrder[i];
 
-              angle = calcAngle(distCA, distCA, distBC);
+                    // base variant
+                    distAB = calcDist(ptA.lat, ptA.lng, ptB.lat, ptB.lng),
 
-          if (placeAfter.index == null || distAB < placeAfter.dist) {
-            placeAfter.index = i;
-            placeAfter.dist = dist;
+                    // in middle
+                    distAE = calcDist(ptA.lat, ptA.lng, each.lat, each.lng),
+                    distEB = calcDist(each.lat, each.lng, ptB.lat, ptB.lng),
+
+                    // prior
+                    distEA = calcDist(each.lat, each.lng, ptA.lat, ptA.lng),
+
+                    // after
+                    distBE = calcDist(ptB.lat, ptB.lng, each.lat, each.lng),
+
+                    dist_bef = distEA + distAB,
+                    dist_mid = distAE + distEB,
+                    dist_aft = distAB + distBE;
+
+                if (dist_bef < dist_mid && dist_bef < dist_aft) {
+                  placeAfter.index = i - 1;
+                } else if (dist_mid < dist_bef && dist_mid < dist_aft) {
+                  placeAfter.index = i;
+                } else {
+                  placeAfter.index = i + 1;
+                }
+                placeAfter.dist = dist;console.log('h', placeAfter)
+              } else if (i == 0) {
+                if (tempOrder.length == 1) {
+                  placeAfter.index = 1;
+                  placeAfter.dist = dist;
+                } else {
+                  if (eachIndex < 4)
+                    console.log(each.shape_pt_sequence, dist)
+
+                  var ptA = tempOrder[i],
+                      ptB = tempOrder[i + 1],
+
+                      // base variant
+                      distAB = calcDist(ptA.lat, ptA.lng, ptB.lat, ptB.lng),
+
+                      // in middle
+                      distAE = calcDist(ptA.lat, ptA.lng, each.lat, each.lng),
+                      distEB = calcDist(each.lat, each.lng, ptB.lat, ptB.lng),
+
+                      // prior
+                      distEA = calcDist(each.lat, each.lng, ptA.lat, ptA.lng),
+
+                      // after
+                      distBE = calcDist(ptB.lat, ptB.lng, each.lat, each.lng),
+
+                      dist_bef = distEA + distAB,
+                      dist_mid = distAE + distEB,
+                      dist_aft = distAB + distBE;
+
+                  if (eachIndex < 4) {
+                    console.log('ptB: ' + ptB.shape_pt_sequence, tempOrder[i].shape_pt_sequence);
+                    console.log('ff', dist_bef, dist_mid, dist_aft);
+                  }
+
+                      if (dist_bef < dist_mid && dist_bef < dist_aft) {
+                        placeAfter.index = 0;
+                      } else if (dist_mid < dist_bef && dist_mid < dist_aft) {
+                        placeAfter.index = 1;
+                      } else {
+                        placeAfter.index = 2;
+                      }
+                      placeAfter.dist = dist;
+                }
+              } else {
+                var ptBef = tempOrder[i - 1],
+                    ptMid = tempOrder[i],
+                    ptAft = tempOrder[i + 1],
+
+                    // prior segment
+                    dist_BM = calcDist(ptBef.lat, ptBef.lng, ptMid.lat, ptMid.lng),
+                    dist_BE = calcDist(ptBef.lat, ptBef.lng, each.lat, each.lng),
+                    dist_EM = calcDist(each.lat, each.lng, ptMid.lat, ptMid.lng),
+
+                    // subsequent segment
+                    dist_MA = calcDist(ptMid.lat, ptMid.lng, ptAft.lat, ptAft.lng),
+                    dist_ME = calcDist(ptMid.lat, ptMid.lng, each.lat, each.lng),
+                    dist_EA = calcDist(each.lat, each.lng, ptAft.lat, ptAft.lng),
+
+                    plc_bef = dist_BE + dist_EM + dist_MA,
+                    plc_aft = dist_BM + dist_ME + dist_EA;
+
+                if (plc_bef < plc_aft) {
+                  placeAfter.index = i;
+                } else {
+                  placeAfter.index = i + 1;
+                }
+                placeAfter.dist = dist;
+              }
+            }
           }
         }
 
-        var end = tempOrder.splice(placeAfter.index + 1);
-        order = tempOrder.concat(each).concat(end);
+        if (placeAfter.index !== null && placeAfter.dist !== null) {
+          var end = tempOrder.splice(placeAfter.index);
+          order = tempOrder.concat(each).concat(end);
+
+          if (eachIndex == 2) {
+            console.log('placeAfter', placeAfter);
+            order.forEach(function (each) { console.log(each); });
+          }
+        }
+      });
+
+      order.forEach(function (ea, i) {
+        if (i > 273) {
+          var latlng = new L.latLng(ea.lat, ea.lng);
+          L.circle(latlng, 4).bindPopup('Num ' + i + ' and seq: ' + ea.shape_pt_sequence).addTo(map); 
+        } else {
+          var latlng = new L.latLng(ea.lat, ea.lng);
+          L.circle(latlng, 8, {color: 'green'}).bindPopup('Num ' + i + ' and seq: ' + ea.shape_pt_sequence).addTo(map); 
+        }
       });
 
       this.cleaned = order;
@@ -202,6 +315,9 @@ var sfToolkit = {
     };
 
     this.calcAngle = function (A,B,C) {
+      if (A == 0 || B == 0 || C == 0) {
+        return false;
+      }
       var angleABC = Math.acos(((B * B) + (C * C) - (A * A)) / (2 * B * C)),
           angleACB = Math.acos(((A * A) + (C * C) - (B * B)) / (2 * A * C));
       return 180 - angleABC - angleACB;
