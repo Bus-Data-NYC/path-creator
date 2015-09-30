@@ -180,72 +180,49 @@ var sfToolkit = {
                 var ptA = tempOrder[i - 1],
                     ptB = tempOrder[i];
 
-                    // base variant
-                    distAB = calcDist(ptA.lat, ptA.lng, ptB.lat, ptB.lng),
-
                     // in middle
                     distAE = calcDist(ptA.lat, ptA.lng, each.lat, each.lng),
                     distEB = calcDist(each.lat, each.lng, ptB.lat, ptB.lng),
 
-                    // prior
-                    distEA = calcDist(each.lat, each.lng, ptA.lat, ptA.lng),
-
                     // after
+                    distAB = calcDist(ptA.lat, ptA.lng, ptB.lat, ptB.lng),
                     distBE = calcDist(ptB.lat, ptB.lng, each.lat, each.lng),
 
-                    dist_bef = distEA + distAB,
                     dist_mid = distAE + distEB,
                     dist_aft = distAB + distBE;
 
-                if (dist_bef < dist_mid && dist_bef < dist_aft) {
+                if (dist_mid < dist_aft) {
                   placeAfter.index = i - 1;
-                } else if (dist_mid < dist_bef && dist_mid < dist_aft) {
-                  placeAfter.index = i;
                 } else {
-                  placeAfter.index = i + 1;
+                  placeAfter.index = i;
                 }
-                placeAfter.dist = dist;console.log('h', placeAfter)
+                placeAfter.dist = dist;
+
               } else if (i == 0) {
                 if (tempOrder.length == 1) {
-                  placeAfter.index = 1;
+                  placeAfter.index = 0;
                   placeAfter.dist = dist;
                 } else {
-                  if (eachIndex < 4)
-                    console.log(each.shape_pt_sequence, dist)
-
                   var ptA = tempOrder[i],
                       ptB = tempOrder[i + 1],
 
-                      // base variant
+                      // prior
+                      distEA = calcDist(each.lat, each.lng, ptA.lat, ptA.lng),
                       distAB = calcDist(ptA.lat, ptA.lng, ptB.lat, ptB.lng),
 
                       // in middle
                       distAE = calcDist(ptA.lat, ptA.lng, each.lat, each.lng),
                       distEB = calcDist(each.lat, each.lng, ptB.lat, ptB.lng),
 
-                      // prior
-                      distEA = calcDist(each.lat, each.lng, ptA.lat, ptA.lng),
-
-                      // after
-                      distBE = calcDist(ptB.lat, ptB.lng, each.lat, each.lng),
-
                       dist_bef = distEA + distAB,
-                      dist_mid = distAE + distEB,
-                      dist_aft = distAB + distBE;
+                      dist_mid = distAE + distEB;
 
-                  if (eachIndex < 4) {
-                    console.log('ptB: ' + ptB.shape_pt_sequence, tempOrder[i].shape_pt_sequence);
-                    console.log('ff', dist_bef, dist_mid, dist_aft);
+                  if (dist_bef < dist_mid) {
+                    placeAfter.index = 0;
+                  } else {
+                    placeAfter.index = 1;
                   }
-
-                      if (dist_bef < dist_mid && dist_bef < dist_aft) {
-                        placeAfter.index = 0;
-                      } else if (dist_mid < dist_bef && dist_mid < dist_aft) {
-                        placeAfter.index = 1;
-                      } else {
-                        placeAfter.index = 2;
-                      }
-                      placeAfter.dist = dist;
+                  placeAfter.dist = dist;
                 }
               } else {
                 var ptBef = tempOrder[i - 1],
@@ -253,12 +230,12 @@ var sfToolkit = {
                     ptAft = tempOrder[i + 1],
 
                     // prior segment
-                    dist_BM = calcDist(ptBef.lat, ptBef.lng, ptMid.lat, ptMid.lng),
                     dist_BE = calcDist(ptBef.lat, ptBef.lng, each.lat, each.lng),
                     dist_EM = calcDist(each.lat, each.lng, ptMid.lat, ptMid.lng),
+                    dist_MA = calcDist(ptMid.lat, ptMid.lng, ptAft.lat, ptAft.lng),
 
                     // subsequent segment
-                    dist_MA = calcDist(ptMid.lat, ptMid.lng, ptAft.lat, ptAft.lng),
+                    dist_BM = calcDist(ptBef.lat, ptBef.lng, ptMid.lat, ptMid.lng),
                     dist_ME = calcDist(ptMid.lat, ptMid.lng, each.lat, each.lng),
                     dist_EA = calcDist(each.lat, each.lng, ptAft.lat, ptAft.lng),
 
@@ -277,13 +254,82 @@ var sfToolkit = {
         }
 
         if (placeAfter.index !== null && placeAfter.dist !== null) {
-          var end = tempOrder.splice(placeAfter.index);
-          order = tempOrder.concat(each).concat(end);
 
-          if (eachIndex == 2) {
-            console.log('placeAfter', placeAfter);
-            order.forEach(function (each) { console.log(each); });
+          if (placeAfter.index == 152 && order[placeAfter.index + 1] !== undefined) {
+            console.log('T Len: ' + tempOrder.length);
+            var end = tempOrder.splice(placeAfter.index);
+            console.log('End: ', end);
+            console.log('Ea: ', each);
+            order = tempOrder.concat(each).concat(end);
+            console.log('order: ', order);
+            console.log(i - 1 + ': ', order[placeAfter.index - 1]);
+            console.log(i + ': ', order[placeAfter.index]);
+            console.log(i + 1 + ': ', order[placeAfter.index + 1]);
+            var ptEac = new L.latLng(each.lat, each.lng),
+                ptBef = new L.latLng(order[placeAfter.index - 2].lat, order[placeAfter.index - 2].lng),
+                ptMid = new L.latLng(order[placeAfter.index - 1].lat, order[placeAfter.index - 1].lng),
+                ptAft = new L.latLng(order[placeAfter.index + 1].lat, order[placeAfter.index + 1].lng);
+
+                // prior segment
+                dist_BM = new L.Polyline([ptBef, ptMid], { color: 'red', weight: 1 } ),
+                dist_BE = new L.Polyline([ptBef, ptEac], { color: 'green', weight: 1 } ),
+                dist_EM = new L.Polyline([ptEac, ptMid], { color: 'purple', weight: 1 } ),
+
+              // subsequent segment
+              dist_MA = new L.Polyline([ptMid, ptAft], { color: 'orange', weight: 1 } ),
+              dist_ME = new L.Polyline([ptMid, ptEac], { color: 'blue', weight: 2 } ),
+              dist_EA = new L.Polyline([ptEac, ptAft], { color: 'blue', weight: 2 } );
+
+            dist_BM.addTo(map);
+            dist_BE.addTo(map);
+            dist_EM.addTo(map);
+            dist_MA.addTo(map);
+            dist_ME.addTo(map);
+            dist_EA.addTo(map);
+
+            var cc_bef = L.circle(L.latLng(ptBef.lat, ptBef.lng), 4, {color: 'blue'}).addTo(map),
+                cc_mid = L.circle(L.latLng(ptMid.lat, ptMid.lng), 8, {color: 'red'}).addTo(map),
+                cc_aft = L.circle(L.latLng(ptAft.lat, ptAft.lng), 2, {color: 'purple'}).addTo(map),
+                cc_ea = L.circle(L.latLng(each.lat, each.lng), 8, {color: 'yellow'}).addTo(map);
+
+            // debugger;
+
+            map.removeLayer(dist_BM);
+            map.removeLayer(dist_BE);
+            map.removeLayer(dist_EM);
+            map.removeLayer(dist_MA);
+            map.removeLayer(dist_ME);
+
+            map.removeLayer(cc_bef);
+            map.removeLayer(cc_mid);
+            map.removeLayer(cc_aft);
+
+            map.removeLayer(dist_EA);
+            map.removeLayer(cc_ea);
+          } else {
+
+          var end = tempOrder.splice(placeAfter.index);
+          order = tempOrder.concat(each).concat(end);            
           }
+
+
+          if (fooLayer !== undefined) {
+            fooLayer.forEach(function (each) {
+              map.removeLayer(each);
+            });
+          } else {
+            fooLayer = [];
+          }
+
+          if (placeAfter.index > 15000) {
+            order.forEach(function (each) {
+              var latlng = new L.latLng(each.lat, each.lng);
+              var circ = L.circle(latlng, 1, {color: 'black', opacity: 0});
+              circ.addTo(map);
+              fooLayer.push(circ);
+            });
+          }
+
         }
       });
 
@@ -293,7 +339,7 @@ var sfToolkit = {
           L.circle(latlng, 4).bindPopup('Num ' + i + ' and seq: ' + ea.shape_pt_sequence).addTo(map); 
         } else {
           var latlng = new L.latLng(ea.lat, ea.lng);
-          L.circle(latlng, 8, {color: 'green'}).bindPopup('Num ' + i + ' and seq: ' + ea.shape_pt_sequence).addTo(map); 
+          L.circle(latlng, 8, {color: 'green'}).bindPopup('Num ' + i + ' and seq: ' + ea.shape_pt_sequence).addTo(map);
         }
       });
 
