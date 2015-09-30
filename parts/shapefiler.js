@@ -141,6 +141,56 @@ var sfToolkit = {
     };
 
 
+    this.dumbReorder = function () {
+      // check far and build it if not built
+      if (this.ref.pruned == null)
+        this.pruneNearby();
+
+      var order = [],
+          far = this.ref.far,
+          pruned = this.ref.pruned;
+
+      // function(s) used from class utils
+      var calcDist = this.calcDist,
+          calcAngle = this.calcAngle;
+
+      order.push(far.obj);
+
+      pruned.forEach(function () {
+        var tempOrder = order,
+            placeAfter = {
+              obj: null,
+              dist: null
+            },
+            last = tempOrder[tempOrder.length - 1];
+
+        pruned.forEach(function (each, eachIndex) {
+          var dist = calcDist(each.lat, each.lng, last.lat, last.lng);
+          if ((placeAfter.dist == null || dist < placeAfter.dist) && dist > 5) {
+            var match = false;
+            tempOrder.forEach(function (ea) {
+              var d2 = calcDist(each.lat, each.lng, ea.lat, ea.lng);
+              if (d2 < 5) {
+                match = true;
+              }
+            });
+
+            if (match == false) {
+              placeAfter.obj = each;
+              placeAfter.dist = dist;
+            }
+          }
+        });
+
+        if (placeAfter.obj !== null) {
+          order.push(placeAfter.obj);
+        }
+      });
+
+      this.cleaned = order;
+      return this;
+    };
+
     this.reorder = function () {
       // check far and build it if not built
       if (this.ref.pruned == null)
@@ -172,6 +222,7 @@ var sfToolkit = {
           var dist = calcDist(each.lat, each.lng, tempOrder[i].lat, tempOrder[i].lng);
 
           if ((placeAfter.dist == null || dist < placeAfter.dist) && dist > 5) {
+
             if (tempOrder.length == 0) {
               placeAfter.index = i;
               placeAfter.dist = dist;
@@ -254,93 +305,19 @@ var sfToolkit = {
         }
 
         if (placeAfter.index !== null && placeAfter.dist !== null) {
-
-          if (placeAfter.index == 152 && order[placeAfter.index + 1] !== undefined) {
-            console.log('T Len: ' + tempOrder.length);
-            var end = tempOrder.splice(placeAfter.index);
-            console.log('End: ', end);
-            console.log('Ea: ', each);
-            order = tempOrder.concat(each).concat(end);
-            console.log('order: ', order);
-            console.log(i - 1 + ': ', order[placeAfter.index - 1]);
-            console.log(i + ': ', order[placeAfter.index]);
-            console.log(i + 1 + ': ', order[placeAfter.index + 1]);
-            var ptEac = new L.latLng(each.lat, each.lng),
-                ptBef = new L.latLng(order[placeAfter.index - 2].lat, order[placeAfter.index - 2].lng),
-                ptMid = new L.latLng(order[placeAfter.index - 1].lat, order[placeAfter.index - 1].lng),
-                ptAft = new L.latLng(order[placeAfter.index + 1].lat, order[placeAfter.index + 1].lng);
-
-                // prior segment
-                dist_BM = new L.Polyline([ptBef, ptMid], { color: 'red', weight: 1 } ),
-                dist_BE = new L.Polyline([ptBef, ptEac], { color: 'green', weight: 1 } ),
-                dist_EM = new L.Polyline([ptEac, ptMid], { color: 'purple', weight: 1 } ),
-
-              // subsequent segment
-              dist_MA = new L.Polyline([ptMid, ptAft], { color: 'orange', weight: 1 } ),
-              dist_ME = new L.Polyline([ptMid, ptEac], { color: 'blue', weight: 2 } ),
-              dist_EA = new L.Polyline([ptEac, ptAft], { color: 'blue', weight: 2 } );
-
-            dist_BM.addTo(map);
-            dist_BE.addTo(map);
-            dist_EM.addTo(map);
-            dist_MA.addTo(map);
-            dist_ME.addTo(map);
-            dist_EA.addTo(map);
-
-            var cc_bef = L.circle(L.latLng(ptBef.lat, ptBef.lng), 4, {color: 'blue'}).addTo(map),
-                cc_mid = L.circle(L.latLng(ptMid.lat, ptMid.lng), 8, {color: 'red'}).addTo(map),
-                cc_aft = L.circle(L.latLng(ptAft.lat, ptAft.lng), 2, {color: 'purple'}).addTo(map),
-                cc_ea = L.circle(L.latLng(each.lat, each.lng), 8, {color: 'yellow'}).addTo(map);
-
-            // debugger;
-
-            map.removeLayer(dist_BM);
-            map.removeLayer(dist_BE);
-            map.removeLayer(dist_EM);
-            map.removeLayer(dist_MA);
-            map.removeLayer(dist_ME);
-
-            map.removeLayer(cc_bef);
-            map.removeLayer(cc_mid);
-            map.removeLayer(cc_aft);
-
-            map.removeLayer(dist_EA);
-            map.removeLayer(cc_ea);
-          } else {
-
           var end = tempOrder.splice(placeAfter.index);
-          order = tempOrder.concat(each).concat(end);            
-          }
-
-
-          if (fooLayer !== undefined) {
-            fooLayer.forEach(function (each) {
-              map.removeLayer(each);
-            });
-          } else {
-            fooLayer = [];
-          }
-
-          if (placeAfter.index > 15000) {
-            order.forEach(function (each) {
-              var latlng = new L.latLng(each.lat, each.lng);
-              var circ = L.circle(latlng, 1, {color: 'black', opacity: 0});
-              circ.addTo(map);
-              fooLayer.push(circ);
-            });
-          }
-
+          order = tempOrder.concat(each).concat(end);
         }
       });
 
       order.forEach(function (ea, i) {
-        if (i > 273) {
-          var latlng = new L.latLng(ea.lat, ea.lng);
-          L.circle(latlng, 4).bindPopup('Num ' + i + ' and seq: ' + ea.shape_pt_sequence).addTo(map); 
-        } else {
-          var latlng = new L.latLng(ea.lat, ea.lng);
-          L.circle(latlng, 8, {color: 'green'}).bindPopup('Num ' + i + ' and seq: ' + ea.shape_pt_sequence).addTo(map);
-        }
+        // if (i > 273) {
+        //   var latlng = new L.latLng(ea.lat, ea.lng);
+        //   L.circle(latlng, 4).bindPopup('Num ' + i + ' and seq: ' + ea.shape_pt_sequence).addTo(map);
+        // } else {
+        //   var latlng = new L.latLng(ea.lat, ea.lng);
+        //   L.circle(latlng, 8, {color: 'green'}).bindPopup('Num ' + i + ' and seq: ' + ea.shape_pt_sequence).addTo(map);
+        // }
       });
 
       this.cleaned = order;
