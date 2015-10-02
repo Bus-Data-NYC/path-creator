@@ -310,17 +310,6 @@ var sfToolkit = {
         }
       });
 
-
-      // order.forEach(function (ea, i) {
-      //   if (i == order.length - 1) {
-      //     var latlng = new L.latLng(ea.lat, ea.lng);
-      //     L.circle(latlng, 4).bindPopup('Num ' + i + ' and seq: ' + ea.shape_pt_sequence).addTo(map);
-      //   } else {
-      //     var latlng = new L.latLng(ea.lat, ea.lng);
-      //     L.circle(latlng, 8, {color: 'green'}).bindPopup('Num ' + i + ' and seq: ' + ea.shape_pt_sequence).addTo(map);
-      //   }
-      // });
-
       tempOrder = order.slice();
 
       tempOrder.forEach(function (each, eachIndex) {
@@ -389,7 +378,6 @@ var sfToolkit = {
     };
 
 
-    // Internal tooling, modified from Chris Veness
     this.calcDist = function (lambda1,phi1,lambda2,phi2) {
       var R = 6371000; 
 
