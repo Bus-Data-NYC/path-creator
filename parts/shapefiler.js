@@ -211,7 +211,7 @@ var sfToolkit = {
       order.push(far.obj);
 
       pruned.forEach(function (each, eachIndex) {
-        var tempOrder = order,
+        var tempOrder = order.slice(),
             placeAfter = {
               index: null,
               dist: null
@@ -243,9 +243,9 @@ var sfToolkit = {
                     dist_aft = distAB + distBE;
 
                 if (dist_mid < dist_aft) {
-                  placeAfter.index = i - 1;
-                } else {
                   placeAfter.index = i;
+                } else {
+                  placeAfter.index = i + 1;
                 }
                 placeAfter.dist = dist;
 
@@ -254,8 +254,8 @@ var sfToolkit = {
                   placeAfter.index = 0;
                   placeAfter.dist = dist;
                 } else {
-                  var ptA = tempOrder[i],
-                      ptB = tempOrder[i + 1],
+                  var ptA = tempOrder[0],
+                      ptB = tempOrder[1],
 
                       // prior
                       distEA = calcDist(each.lat, each.lng, ptA.lat, ptA.lng),
@@ -310,14 +310,78 @@ var sfToolkit = {
         }
       });
 
+
+      // order.forEach(function (ea, i) {
+      //   if (i == order.length - 1) {
+      //     var latlng = new L.latLng(ea.lat, ea.lng);
+      //     L.circle(latlng, 4).bindPopup('Num ' + i + ' and seq: ' + ea.shape_pt_sequence).addTo(map);
+      //   } else {
+      //     var latlng = new L.latLng(ea.lat, ea.lng);
+      //     L.circle(latlng, 8, {color: 'green'}).bindPopup('Num ' + i + ' and seq: ' + ea.shape_pt_sequence).addTo(map);
+      //   }
+      // });
+
+      tempOrder = order.slice();
+
+      tempOrder.forEach(function (each, eachIndex) {
+        
+        // check if not end point
+        var prior = tempOrder[eachIndex - 1],
+            after = tempOrder[eachIndex + 1];
+
+        if (prior !== undefined && after !== undefined) {
+          var dist_bef = calcDist(prior.lat, prior.lng, each.lat, each.lng),
+              dist_aft = calcDist(each.lat, each.lng, after.lat, after.lng),
+              dist_mid = calcDist(prior.lat, prior.lng, after.lat, after.lng);
+
+          if (Math.abs((dist_bef + dist_aft) - dist_mid) > 0.5) {
+            console.log('Dist Bef: ', dist_bef);
+            console.log('Dist Mid: ', dist_mid);
+            console.log('Dist Aft: ', dist_aft);
+            console.log('Angle: ', calcAngle(dist_bef, dist_aft, dist_mid));
+            console.log('');
+
+            var a = [L.latLng(prior.lat, prior.lng), L.latLng(each.lat, each.lng)];
+            var b = [L.latLng(after.lat, after.lng), L.latLng(each.lat, each.lng)];
+            var c = [L.latLng(prior.lat, prior.lng), L.latLng(after.lat, after.lng)];
+
+            var la = L.polyline(a, {color: 'red', weight: 1});
+                // la.addTo(map);
+            var lb = L.polyline(b, {color: 'green', weight: 1});
+                // lb.addTo(map);
+            var lc = L.polyline(c, {color: 'blue', weight: 1});
+                lc.addTo(map);
+            
+            var latlng = new L.latLng(prior.lat, prior.lng);
+            var gc1 = new L.circle(latlng, 8, {color: 'red'}).addTo(map);
+
+            var latlng = new L.latLng(each.lat, each.lng);
+            var gc2 = new L.circle(latlng, 8, {color: 'green'}).addTo(map);
+
+            var latlng = new L.latLng(after.lat, after.lng);
+            var gc3 = new L.circle(latlng, 8, {color: 'orange'}).addTo(map);
+
+            debugger;
+
+            map.removeLayer(la);
+            map.removeLayer(lb);
+            map.removeLayer(lc);
+
+            map.removeLayer(gc1);
+            map.removeLayer(gc2);
+            map.removeLayer(gc3);
+          }
+        }
+      });
+
       order.forEach(function (ea, i) {
-        // if (i > 273) {
-        //   var latlng = new L.latLng(ea.lat, ea.lng);
-        //   L.circle(latlng, 4).bindPopup('Num ' + i + ' and seq: ' + ea.shape_pt_sequence).addTo(map);
-        // } else {
-        //   var latlng = new L.latLng(ea.lat, ea.lng);
-        //   L.circle(latlng, 8, {color: 'green'}).bindPopup('Num ' + i + ' and seq: ' + ea.shape_pt_sequence).addTo(map);
-        // }
+        if (i == order.length - 1) {
+          var latlng = new L.latLng(ea.lat, ea.lng);
+          L.circle(latlng, 4).bindPopup('Num ' + i + ' and seq: ' + ea.shape_pt_sequence).addTo(map);
+        } else {
+          var latlng = new L.latLng(ea.lat, ea.lng);
+          L.circle(latlng, 8, {color: 'green'}).bindPopup('Num ' + i + ' and seq: ' + ea.shape_pt_sequence).addTo(map);
+        }
       });
 
       this.cleaned = order;
@@ -327,22 +391,29 @@ var sfToolkit = {
 
     // Internal tooling, modified from Chris Veness
     this.calcDist = function (lambda1,phi1,lambda2,phi2) {
-      var R = 6371000; // meters
-      difLambda = (lambda2 - lambda1) * Math.PI / 180;
-      phi1 = phi1 * Math.PI / 180;
-      phi2 = phi2 * Math.PI / 180;
-      var x = difLambda * Math.cos((phi1+phi2)/2);
-      var y = (phi2-phi1);
-      var d = Math.sqrt(x*x + y*y);
-      return R * d;
+      var R = 6371000; 
+
+      var phi1 = lambda1 * (Math.PI / 180);
+      var phi2 = lambda2 * (Math.PI / 180);
+      var deltaphi = (lambda2-lambda1) * (Math.PI / 180);
+      var deltalambda = (phi2-phi1) * (Math.PI / 180);
+
+      var a = Math.sin(deltaphi/2) * Math.sin(deltaphi/2) +
+              Math.cos(phi1) * Math.cos(phi2) *
+              Math.sin(deltalambda/2) * Math.sin(deltalambda/2);
+      var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+      var d = R * c;
+
+      return d;
     };
 
     this.calcAngle = function (A,B,C) {
-      if (A == 0 || B == 0 || C == 0) {
-        return false;
-      }
-      var angleABC = Math.acos(((B * B) + (C * C) - (A * A)) / (2 * B * C)),
-          angleACB = Math.acos(((A * A) + (C * C) - (B * B)) / (2 * A * C));
+      if (A == 0 || B == 0 || C == 0) { return false; }
+
+      // conversion from radians to degrees = * (180 / Math.PI)
+      var angleABC = Math.acos(((B * B) + (C * C) - (A * A)) / (2 * B * C)) * (180 / Math.PI),
+          angleACB = Math.acos(((A * A) + (C * C) - (B * B)) / (2 * A * C)) * (180 / Math.PI);
+      console.log(angleABC, angleACB);
       return 180 - angleABC - angleACB;
     };
 
