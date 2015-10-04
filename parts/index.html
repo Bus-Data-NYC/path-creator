@@ -58,7 +58,7 @@
       layers: []
     });
 
-    L.tileLayer('http://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}.png').addTo(map);
+    // L.tileLayer('http://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}.png').addTo(map);
 
     setTimeout(function() {
       $.get('example.json')
@@ -76,7 +76,11 @@
 
         var parts = sfToolkit.splitDirections(path, 'direction_id');
 
-        var sf = new sfToolkit.shapefiler(parts[0]);
+        var options = {
+          shuffle: true,
+        };
+
+        var sf = new sfToolkit.shapefiler(parts[0], options);
         var clean = sf.getCleaned();
         console.log('Completed; example: ', clean.length, clean);
 

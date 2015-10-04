@@ -14,13 +14,13 @@ var sfToolkit = {
     return order;
   },
 
-  shapefiler: function (pointCluster) {
+  shapefiler: function (pointCluster, options) {
   
     // check to see if mandatory vars supplied
-    if (pointCluster == undefined)
+    if (pointCluster == undefined) {
       throw Error('Lat/Lng data not supplied; shapefiler build failed.')
+    }
 
-    
     // init components
     this.base = pointCluster;
     this.cleaned = null;
@@ -37,6 +37,20 @@ var sfToolkit = {
       },
       pruned: null,
     };
+
+    if (options == undefined) {
+      this.options = {
+        shuffle: false,
+      };
+    } else {
+      this.options = {};
+
+      if (options.shuffle == true || options.shuffle == false) {
+        this.options.shuffle = options.shuffle;
+      } else {
+        this.options.shuffle = false;
+      }
+    }
     
     
     this.getBase = function () {
@@ -54,10 +68,27 @@ var sfToolkit = {
       return this.ref.avg;
     };
 
+    this.shuffle = function () {
+      console.log(this.base);
+
+
+      var b = this.base.slice(),
+          length = b.length;
+
+      for (var i = 0; i < length; i++) {
+        var lastVar = b.pop(),
+            randIndex = Math.floor(Math.random() * length),
+            end = b.splice(randIndex);
+        b = b.concat(lastVar).concat(end);
+      }
+    };
 
     this.createAvg = function () {
       if (this.base == null)
         throw Error('Base lat/lng data missing.')
+
+      if (this.options.shuffle)
+        this.shuffle();
 
       var latList = [],
           lngList = [],
@@ -69,6 +100,7 @@ var sfToolkit = {
       base.forEach(function (each) {
         if (each.lat !== undefined || each.lat !== null || isNaN(Number(each.lat)))
           latList.push(each.lat);
+
         if (each.lng !== undefined || each.lng !== null || isNaN(Number(each.lng)))
           lngList.push(each.lng);
       });
@@ -401,7 +433,7 @@ var sfToolkit = {
       // conversion from radians to degrees = * (180 / Math.PI)
       var angleABC = Math.acos(((B * B) + (C * C) - (A * A)) / (2 * B * C)) * (180 / Math.PI),
           angleACB = Math.acos(((A * A) + (C * C) - (B * B)) / (2 * A * C)) * (180 / Math.PI);
-      console.log(angleABC, angleACB);
+
       return 180 - angleABC - angleACB;
     };
 
