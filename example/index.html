@@ -77,12 +77,16 @@
         var parts = sfToolkit.splitDirections(path, 'direction_id');
 
         var options = {
-          shuffle: true,
+          shuffle: false,
           basicReorder: true,
           sensitivity: {
             proximity: 0.0000005,
             angle: 50
-          }
+          },
+          // farthestPoint: {
+          //   lat: null,
+          //   lng: null
+          // }
         };
 
         var sf = new sfToolkit.shapefiler(parts[0], options);

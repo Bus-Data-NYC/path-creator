@@ -44,42 +44,70 @@ var sfToolkit = {
         sensitivity: {
           proximity: 5, // meters
           angle: 50     // degrees
+        },
+        farthestPoint: {
+          lat: null,
+          lng: null,
         }
       };
     } else {
       this.options = {};
 
+      // shuffle
       if (options.shuffle == true || options.shuffle == false) {
         this.options.shuffle = options.shuffle;
       } else {
         this.options.shuffle = false;
       }
 
+      // use basic or experimental reorder
       if (options.basicReorder == true || options.basicReorder == false) {
         this.options.basicReorder = options.basicReorder;
       } else {
         this.options.basicReorder = true;
       }
 
+      // set sensitivity
       if (typeof options.sensitivity == 'object') {
         this.options.sensitivity = {};
 
         if (isNaN(options.sensitivity.proximity)) {
-          this.options.sensitivity.proximity = options.sensitivity.proximity;
-        } else {
           this.options.sensitivity.proximity = 5;
+        } else {
+          this.options.sensitivity.proximity = options.sensitivity.proximity;
         }
 
         if (isNaN(options.sensitivity.angle)) {
-          this.options.sensitivity.angle = options.sensitivity.angle;
-        } else {
           this.options.sensitivity.angle = 50;
+        } else {
+          this.options.sensitivity.angle = options.sensitivity.angle;
         }
-
       } else {
         this.options.sensitivity = {
           proximity: 5,
           angle: 50
+        };
+      }
+
+      // set farthest point
+      if (typeof options.farthestPoint == 'object') {
+        this.options.sensitivity = {};
+        
+        if (isNaN(options.farthestPoint.lat)) {
+          this.ref.far.lat;
+        } else {
+          this.ref.far.lat = options.farthestPoint.lat;
+        }
+        
+        if (isNaN(options.far.lng)) {
+          this.ref.far.lng;
+        } else {
+          this.ref.far.lng = options.farthestPoint.lng;
+        }
+      } else {
+        this.ref.far = {
+          lat: null,
+          lng: null
         };
       }
     }
@@ -149,26 +177,43 @@ var sfToolkit = {
 
 
     this.createFar = function () {
-      var tempFarthest = null,
-          avg = this.ref.avg,
-          base = this.base;
-
       // check avg and build it if not built
-      if (avg.lat == null || avg.lng == null)
+      if (this.ref.avg.lat == null || this.ref.avg.lng == null)
         this.createAvg();
+
+      var tempSelect = {
+            obj: null,
+            distFromAvg: null
+          },
+          base = this.base;
 
       // function(s) used from class utils
       var calcDist = this.calcDist;
 
-      base.forEach(function (each) {
-        each.distFromAvg = calcDist(each.lat, each.lng, avg.lat, avg.lng);
-        if (tempFarthest == null || each.distFromAvg > tempFarthest.distFromAvg)
-          tempFarthest = each;
-      });
+      // find point farthest from average or closest to stated far
+      if (this.ref.far.lat == null || this.ref.far.lng == null) {
+        var avg = this.ref.avg;
+        base.forEach(function (each) {
+          var distFromAvg = calcDist(each.lat, each.lng, avg.lat, avg.lng);
+          if (tempSelect.obj == null || distFromAvg > tempSelect.distFromAvg){
+            tempSelect.obj = each;
+            tempSelect.distFromAvg = distFromAvg; 
+          }
+        });
+      } else {
+        var far = this.ref.far;
+        base.forEach(function (each) {
+          var distFromAvg = calcDist(each.lat, each.lng, far.lat, far.lng);
+          if (tempSelect.obj == null || distFromAvg < tempSelect.distFromAvg) {
+            tempSelect.obj = each;
+            tempSelect.distFromAvg = distFromAvg; 
+          }
+        });
+      }
 
-      this.ref.far.lat = tempFarthest.lat;
-      this.ref.far.lng = tempFarthest.lng;
-      this.ref.far.obj = tempFarthest;
+      this.ref.far.lat = tempSelect.obj.lat;
+      this.ref.far.lng = tempSelect.obj.lng;
+      this.ref.far.obj = tempSelect.obj;
 
       return this;
     };
