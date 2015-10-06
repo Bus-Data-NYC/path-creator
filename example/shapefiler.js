@@ -40,7 +40,7 @@ var sfToolkit = {
     if (options == undefined) {
       this.options = {
         shuffle: false,
-        dumbReorder: false,
+        basicReorder: true,
         sensitivity: {
           proximity: 5, // meters
           angle: 50     // degrees
@@ -55,10 +55,10 @@ var sfToolkit = {
         this.options.shuffle = false;
       }
 
-      if (options.dumbReorder == true || options.dumbReorder == false) {
-        this.options.dumbReorder = options.dumbReorder;
+      if (options.basicReorder == true || options.basicReorder == false) {
+        this.options.basicReorder = options.basicReorder;
       } else {
-        this.options.dumbReorder = false;
+        this.options.basicReorder = true;
       }
 
       if (typeof options.sensitivity == 'object') {
@@ -91,10 +91,10 @@ var sfToolkit = {
     
     this.getCleaned = function () {
       if (this.cleaned == null) {
-        if (this.options.dumbReorder) {
-          this.dumbReorder();
+        if (this.options.basicReorder) {
+          this.basicReorder();
         } else {
-          this.reorder();
+          this.experimentalReorder();
         }
       }
       return this.cleaned;
@@ -208,13 +208,12 @@ var sfToolkit = {
     };
 
 
-    this.dumbReorder = function () {
+    this.basicReorder = function () {
       // check far and build it if not built
       if (this.ref.pruned == null)
         this.pruneNearby();
 
-      var order = [],
-          far = this.ref.far,
+      var far = this.ref.far,
           pruned = this.ref.pruned;
 
       // function(s) used from class utils
@@ -223,11 +222,11 @@ var sfToolkit = {
 
       var proximity = this.options.sensitivity.proximity;
 
-      order.push(far.obj);
+      var order = [far.obj];
 
       pruned.forEach(function () {
         var tempOrder = order,
-            placeAfter = {
+            placeBef = {
               obj: null,
               dist: null,
               before: false
@@ -236,7 +235,7 @@ var sfToolkit = {
 
         pruned.forEach(function (each, eachIndex) {
           var dist = calcDist(each.lat, each.lng, last.lat, last.lng);
-          if ((placeAfter.dist == null || dist < placeAfter.dist) && dist > 5) {
+          if ((placeBef.dist == null || dist < placeBef.dist) && dist > proximity) {
             var match = false;
             tempOrder.forEach(function (ea) {
               var d2 = calcDist(each.lat, each.lng, ea.lat, ea.lng);
@@ -246,8 +245,8 @@ var sfToolkit = {
             });
 
             if (match == false) {
-              placeAfter.obj = each;
-              placeAfter.dist = dist;
+              placeBef.obj = each;
+              placeBef.dist = dist;
 
               var prior = order[order.length - 2];
               if (prior !== undefined) {
@@ -260,39 +259,39 @@ var sfToolkit = {
                     dist_bef = distBE + distEL,
                     dist_aft = distBL + distEL;
                 if (dist_bef < dist_aft) {
-                  placeAfter.before = true;
+                  placeBef.before = true;
                 } else {
-                  placeAfter.before = false;
+                  placeBef.before = false;
                 }
               } else {
-                placeAfter.before = false;
+                placeBef.before = false;
               }
             }
           }
         });
 
-        if (placeAfter.obj !== null) {
-          if (placeAfter.before) {
+        if (placeBef.obj !== null) {
+          if (placeBef.before) {
             var ordLast = order.pop();
-            order.push(placeAfter.obj);
+            order.push(placeBef.obj);
             order.push(ordLast);
           } else {
-            order.push(placeAfter.obj);
+            order.push(placeBef.obj);
           }
         }
       });
 
-      this.cleaned = order;
+      this.cleaned = this.jagCleaner(order);
       return this;
     };
 
-    this.reorder = function () {
+    this.experimentalReorder = function () {
       // check far and build it if not built
       if (this.ref.pruned == null)
         this.pruneNearby();
 
-      var order = [],
-          far = this.ref.far,
+      var far = this.ref.far,
+          proximity = this.options.sensitivity.proximity,
           angleThreshold = this.options.sensitivity.angle,
           pruned = this.ref.pruned;
 
@@ -300,28 +299,28 @@ var sfToolkit = {
       var calcDist = this.calcDist,
           calcAngle = this.calcAngle;
 
-      order.push(far.obj);
+      var order = [far.obj];
 
       pruned.forEach(function (each, eachIndex) {
         var tempOrder = order.slice(),
-            placeAfter = {
+            placeBef = {
               index: null,
               dist: null
             };
         
-
-        for (var i = 0; i < tempOrder.length; i++) {
-          var dist = calcDist(each.lat, each.lng, tempOrder[i].lat, tempOrder[i].lng);
-
-          if ((placeAfter.dist == null || dist < placeAfter.dist) && dist > 5) {
+        tempOrder.forEach(function (target, i) {
+          var dist = calcDist(each.lat, each.lng, target.lat, target.lng);
+          if ((placeBef.dist == null || dist < placeBef.dist) && dist > proximity) {
 
             if (tempOrder.length == 0) {
-              placeAfter.index = i;
-              placeAfter.dist = dist;
+              placeBef.index = i;
+              placeBef.dist = dist;
             } else {
+
+              // if is last item
               if (i == (tempOrder.length - 1) && tempOrder.length > 1) {
                 var ptA = tempOrder[i - 1],
-                    ptB = tempOrder[i];
+                    ptB = target;
 
                     // in middle
                     distAE = calcDist(ptA.lat, ptA.lng, each.lat, each.lng),
@@ -335,16 +334,17 @@ var sfToolkit = {
                     dist_aft = distAB + distBE;
 
                 if (dist_mid < dist_aft) {
-                  placeAfter.index = i;
+                  placeBef.index = i;
                 } else {
-                  placeAfter.index = i + 1;
+                  placeBef.index = i + 1;
                 }
-                placeAfter.dist = dist;
+                placeBef.dist = dist;
 
+              // if is first item
               } else if (i == 0) {
                 if (tempOrder.length == 1) {
-                  placeAfter.index = 0;
-                  placeAfter.dist = dist;
+                  placeBef.index = 0;
+                  placeBef.dist = dist;
                 } else {
                   var ptA = tempOrder[0],
                       ptB = tempOrder[1],
@@ -361,15 +361,17 @@ var sfToolkit = {
                       dist_mid = distAE + distEB;
 
                   if (dist_bef < dist_mid) {
-                    placeAfter.index = 0;
+                    placeBef.index = 0;
                   } else {
-                    placeAfter.index = 1;
+                    placeBef.index = 1;
                   }
-                  placeAfter.dist = dist;
+                  placeBef.dist = dist;
                 }
+
+              // otherwise in middle of array
               } else {
                 var ptBef = tempOrder[i - 1],
-                    ptMid = tempOrder[i],
+                    ptMid = target,
                     ptAft = tempOrder[i + 1],
 
                     // prior segment
@@ -386,18 +388,18 @@ var sfToolkit = {
                     plc_aft = dist_BM + dist_ME + dist_EA;
 
                 if (plc_bef < plc_aft) {
-                  placeAfter.index = i;
+                  placeBef.index = i;
                 } else {
-                  placeAfter.index = i + 1;
+                  placeBef.index = i + 1;
                 }
-                placeAfter.dist = dist;
+                placeBef.dist = dist;
               }
             }
           }
-        }
+        });
 
-        if (placeAfter.index !== null && placeAfter.dist !== null) {
-          var end = tempOrder.splice(placeAfter.index);
+        if (placeBef.index !== null && placeBef.dist !== null) {
+          var end = tempOrder.splice(placeBef.index);
           order = tempOrder.concat(each).concat(end);
         }
       });
@@ -419,6 +421,8 @@ var sfToolkit = {
           //
         }
       });
+
+      return base;
     };
 
 

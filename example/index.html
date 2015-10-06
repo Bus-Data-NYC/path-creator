@@ -54,14 +54,14 @@
 
     var map = new L.map('map', {
       center: new L.LatLng(40.8, -73.94),
-      zoom: 15,
+      zoom: 14,
       layers: []
     });
 
     L.tileLayer('http://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}.png').addTo(map);
 
     setTimeout(function() {
-      $.get('example2.json')
+      $.get('example.json')
       .done(function (data) {
 
         // on success prepare data for shapefiler
@@ -78,9 +78,9 @@
 
         var options = {
           shuffle: true,
-          dumbReorder: false,
+          basicReorder: true,
           sensitivity: {
-            proximity: 5,
+            proximity: 0.0000005,
             angle: 50
           }
         };
@@ -103,6 +103,12 @@
           } else {
             var latlng = new L.latLng(ea.lat, ea.lng);
             L.circle(latlng, 8, {color: 'green'}).bindPopup('Num ' + i + ' and seq: ' + ea.shape_pt_sequence).addTo(map);
+            var foo = new L.Polyline([L.latLng(clean[i-1].lat, clean[i-1].lng), latlng], {
+              color: 'blue',
+              weight: 2,
+              opacity: 0.5,
+              smoothFactor: 1
+            }).bindPopup('Len: ' + calcDist(ea.lat, ea.lng, clean[i-1].lat, clean[i-1].lng)).addTo(map);
           }
         });
 
@@ -112,14 +118,23 @@
           opacity: 0.5,
           smoothFactor: 1
         });
-        polyline.addTo(map);
-        // map.fitBounds(polyline.getBounds());
+        // polyline.addTo(map);
       })
 
       .error(function (error) {
         console.log('Err', error);
       })
     }, 1000);
+
+    var calcDist = function (lat1, lng1, lat2, lng2) {
+      var R = 6371000,
+          rad = (Math.PI / 180),
+
+          x = (lng2 - lng1) * rad,
+          y = (lat2 - lat1) * rad;
+
+      return R * Math.sqrt((x * x) + (y * y));
+    };
 
   </script>
 </html>
