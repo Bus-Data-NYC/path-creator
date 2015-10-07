@@ -80,13 +80,9 @@
           shuffle: false,
           basicReorder: true,
           sensitivity: {
-            proximity: 0.0000005,
+            proximity: 5,
             angle: 50
-          },
-          // farthestPoint: {
-          //   lat: null,
-          //   lng: null
-          // }
+          }
         };
 
         var sf = new sfToolkit.shapefiler(parts[0], options);
@@ -103,10 +99,10 @@
         clean.forEach(function (ea, i) {
           if (i == 0) {
             var latlng = new L.latLng(ea.lat, ea.lng);
-            L.circle(latlng, 4).bindPopup('Num ' + i + ' and seq: ' + ea.shape_pt_sequence).addTo(map);
+            // L.circle(latlng, 4).bindPopup('Num ' + i + ' and seq: ' + ea.shape_pt_sequence).addTo(map);
           } else {
             var latlng = new L.latLng(ea.lat, ea.lng);
-            L.circle(latlng, 8, {color: 'green'}).bindPopup('Num ' + i + ' and seq: ' + ea.shape_pt_sequence).addTo(map);
+            // L.circle(latlng, 8, {color: 'green'}).bindPopup('Num ' + i + ' and seq: ' + ea.shape_pt_sequence).addTo(map);
             var foo = new L.Polyline([L.latLng(clean[i-1].lat, clean[i-1].lng), latlng], {
               color: 'blue',
               weight: 2,

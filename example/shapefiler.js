@@ -128,6 +128,12 @@ var sfToolkit = {
       return this.cleaned;
     };
 
+    this.checkCleaned = function () {
+      var latest = this.getCleaned(),
+          issues = this.jagDetection(latest);
+      return issues;
+    }
+
     this.getAvg = function () {
       return this.ref.avg;
     };
@@ -265,7 +271,8 @@ var sfToolkit = {
       var calcDist = this.calcDist,
           calcAngle = this.calcAngle;
 
-      var proximity = this.options.sensitivity.proximity;
+      var proximity = this.options.sensitivity.proximity,
+          angleLimit = this.options.sensitivity.angle;
 
       var order = [far.obj];
 
@@ -326,7 +333,7 @@ var sfToolkit = {
         }
       });
 
-      this.cleaned = this.jagCleaner(order);
+      this.cleaned = order;
       return this;
     };
 
@@ -337,7 +344,6 @@ var sfToolkit = {
 
       var far = this.ref.far,
           proximity = this.options.sensitivity.proximity,
-          angleThreshold = this.options.sensitivity.angle,
           pruned = this.ref.pruned;
 
       // function(s) used from class utils
@@ -449,25 +455,47 @@ var sfToolkit = {
         }
       });
 
-      // order = this.jagCleaner(order);
-
       this.cleaned = order;
       return this;
     };
 
 
-    this.jagCleaner = function (base) {
-      var angleLimit = this.options.sensitivity.angle;
+    this.jagDetection = function (base) {
+      var angleLimit = this.options.sensitivity.angle,
+          calcDist = this.calcDist,
+          calcAngle = this.calcAngle;
 
-      base.forEach(function (each, eachIndex) {
-        var prior = base[eachIndex - 1],
-            after = base[eachIndex + 1]
+      var alertAngles = [];
+      base.forEach(function (each, i) {
+        var prior = base[i - 1],
+            after = base[i + 1];
+
+        // check if at least 1 on either side of array point
         if (prior !== undefined && after !== undefined) {
-          //
+          var BA = calcDist(prior.lat, prior.lng, each.lat, each.lng),
+              AC = calcDist(each.lat, each.lng, after.lat, after.lng),
+              BC = calcDist(prior.lat, prior.lng, after.lat, after.lng),
+              angle = calcAngle(BA, AC, BC);
+
+          if (angle < angleLimit) {
+            var temp = {
+              anglePoint: each,
+              angleIndex: i,
+              angleValue: angle,
+              nextBest: {
+                obj: null,
+                index: null,
+                dist: null,
+                angle: null,
+              }
+            };
+
+            alertAngles.push(temp);
+          }
         }
       });
 
-      return base;
+      return alertAngles;
     };
 
 
@@ -485,10 +513,10 @@ var sfToolkit = {
       if (A == 0 || B == 0 || C == 0) { return false; }
 
       // conversion from radians to degrees = * (180 / Math.PI)
-      var angleABC = Math.acos(((B * B) + (C * C) - (A * A)) / (2 * B * C)) * (180 / Math.PI),
-          angleACB = Math.acos(((A * A) + (C * C) - (B * B)) / (2 * A * C)) * (180 / Math.PI);
+      var angle_b = Math.acos(((B * B) + (C * C) - (A * A)) / (2 * B * C)) * (180 / Math.PI),
+          angle_c = Math.acos(((A * A) + (C * C) - (B * B)) / (2 * A * C)) * (180 / Math.PI);
 
-      return 180 - angleABC - angleACB;
+      return 180 - angle_b - angle_c;
     };
 
     this.calcAvg = function (elem) {
@@ -499,6 +527,7 @@ var sfToolkit = {
         throw Error('Not enough points in lat/lng lists provided to perform calculation.');
       }
     };
+
   },
 
 };
